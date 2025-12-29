@@ -1,5 +1,5 @@
 // Gradio API endpoint
-const GRADIO_API_URL = "https://363bcf6885b67a2d84.gradio.live/";
+const GRADIO_API_URL = process.env.GRADIO_API_URL || "https://363bcf6885b67a2d84.gradio.live/";
 
 // Analyze food image
 module.exports.analyzeFood = async (req, res) => {
