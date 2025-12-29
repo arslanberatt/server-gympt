@@ -56,11 +56,11 @@ module.exports.analyzeFood = async (req, res) => {
     console.log('Gradio API info:', JSON.stringify(apiInfo, null, 2));
     
     // Find endpoint name (string format required)
-    let endpointName = "/gradio_vision_analyzer"; // Default endpoint name
+    let endpointName = "/full_ai_nutrition_analyzer"; // Default endpoint name
     if (apiInfo && apiInfo.named_endpoints) {
-      // Check if "/gradio_vision_analyzer" exists
-      if (apiInfo.named_endpoints["/gradio_vision_analyzer"] !== undefined) {
-        endpointName = "/gradio_vision_analyzer";
+      // Check if "/full_ai_nutrition_analyzer" exists
+      if (apiInfo.named_endpoints["/full_ai_nutrition_analyzer"] !== undefined) {
+        endpointName = "/full_ai_nutrition_analyzer";
       } else {
         // Use first available endpoint name
         const endpointNames = Object.keys(apiInfo.named_endpoints);
@@ -72,14 +72,23 @@ module.exports.analyzeFood = async (req, res) => {
     
     console.log('Using endpoint name:', endpointName);
     
-    // Convert buffer to base64 data URL (Gradio expects this format)
+    // Convert buffer to base64 data URL
     const base64Image = imageBuffer.toString('base64');
     const dataUrl = `data:${imageMimeType};base64,${base64Image}`;
     
+    // According to API info, image_path expects an object with url or path
+    // Format: { path: string, url: string, meta: {...}, orig_name: string }
+    const imageData = {
+      url: dataUrl,
+      meta: {
+        _type: "gradio.FileData"
+      },
+      orig_name: req.file?.originalname || "image.jpg"
+    };
+    
     // Call Gradio API with endpoint name as string
-    // According to the example, endpoint name should be a string
     const result = await client.predict(endpointName, {
-      image_path: dataUrl
+      image_path: imageData
     });
 
     // Return the analysis result
