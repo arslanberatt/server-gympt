@@ -44,32 +44,47 @@ module.exports.analyzeFood = async (req, res) => {
     // Connect to Gradio client
     const client = await Client.connect(GRADIO_API_URL);
     
-    // Get API info to find the correct endpoint
-    const apiInfo = await client.view_api();
-    console.log('Gradio API info:', JSON.stringify(apiInfo, null, 2));
-    
-    // Find endpoint by name "/gradio_vision_analyzer" or use fn_index
-    let endpointIdentifier;
-    if (apiInfo && apiInfo.named_endpoints && apiInfo.named_endpoints["/gradio_vision_analyzer"] !== undefined) {
-      endpointIdentifier = apiInfo.named_endpoints["/gradio_vision_analyzer"];
-    } else if (apiInfo && apiInfo.named_endpoints) {
-      // Try to find any endpoint that might work
-      const firstEndpoint = Object.values(apiInfo.named_endpoints)[0];
-      endpointIdentifier = firstEndpoint !== undefined ? firstEndpoint : 0;
+    // Create Blob from buffer (Node.js 18+ has global Blob)
+    // If Blob is not available, use Buffer directly
+    let imageData;
+    if (typeof Blob !== 'undefined') {
+      imageData = new Blob([imageBuffer], { type: imageMimeType });
     } else {
-      endpointIdentifier = 0; // Default to first endpoint
+      // Fallback: use buffer directly (Gradio might accept this)
+      imageData = imageBuffer;
     }
     
-    // Create a File-like object from buffer for Gradio
-    // Gradio client accepts Buffer, File, or Blob
-    // Convert buffer to a format Gradio can understand
-    const imageBlob = new Blob([imageBuffer], { type: imageMimeType });
-    
-    // Call Gradio API with the endpoint identifier
-    // According to the example, it should be called with image_path parameter
-    const result = await client.predict(endpointIdentifier, {
-      image_path: imageBlob
-    });
+    // Try to call the endpoint by name first (as shown in the example)
+    let result;
+    try {
+      // Try with endpoint name as string (from the example)
+      result = await client.predict("/gradio_vision_analyzer", {
+        image_path: imageData
+      });
+    } catch (error) {
+      // If that fails, try to get API info and use fn_index
+      try {
+        const apiInfo = await client.view_api();
+        console.log('Gradio API info:', JSON.stringify(apiInfo, null, 2));
+        
+        // Find endpoint by name or use first available
+        let fnIndex = 0;
+        if (apiInfo && apiInfo.named_endpoints) {
+          if (apiInfo.named_endpoints["/gradio_vision_analyzer"] !== undefined) {
+            fnIndex = apiInfo.named_endpoints["/gradio_vision_analyzer"];
+          } else {
+            // Use first available endpoint
+            const firstEndpoint = Object.values(apiInfo.named_endpoints)[0];
+            fnIndex = firstEndpoint !== undefined ? firstEndpoint : 0;
+          }
+        }
+        
+        // Try with fn_index
+        result = await client.predict(fnIndex, [imageData]);
+      } catch (error2) {
+        throw new Error(`Gradio API error: ${error2.message}. Original error: ${error.message}`);
+      }
+    }
 
     // Return the analysis result
     res.status(200).json({
