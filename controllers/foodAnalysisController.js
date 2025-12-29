@@ -55,28 +55,32 @@ module.exports.analyzeFood = async (req, res) => {
     const apiInfo = await client.view_api();
     console.log('Gradio API info:', JSON.stringify(apiInfo, null, 2));
     
-    // Find endpoint - try by name first, then use first available
-    let fnIndex = 0;
+    // Find endpoint name (string format required)
+    let endpointName = "/gradio_vision_analyzer"; // Default endpoint name
     if (apiInfo && apiInfo.named_endpoints) {
-      // Try to find "/gradio_vision_analyzer" endpoint
+      // Check if "/gradio_vision_analyzer" exists
       if (apiInfo.named_endpoints["/gradio_vision_analyzer"] !== undefined) {
-        fnIndex = apiInfo.named_endpoints["/gradio_vision_analyzer"];
+        endpointName = "/gradio_vision_analyzer";
       } else {
-        // Use first available endpoint
-        const endpoints = Object.values(apiInfo.named_endpoints);
-        fnIndex = endpoints.length > 0 ? endpoints[0] : 0;
+        // Use first available endpoint name
+        const endpointNames = Object.keys(apiInfo.named_endpoints);
+        if (endpointNames.length > 0) {
+          endpointName = endpointNames[0];
+        }
       }
     }
     
-    console.log('Using fn_index:', fnIndex);
+    console.log('Using endpoint name:', endpointName);
     
     // Convert buffer to base64 data URL (Gradio expects this format)
     const base64Image = imageBuffer.toString('base64');
     const dataUrl = `data:${imageMimeType};base64,${base64Image}`;
     
-    // Call Gradio API
-    // According to Gradio docs, predict takes (fn_index, data_array)
-    const result = await client.predict(fnIndex, [dataUrl]);
+    // Call Gradio API with endpoint name as string
+    // According to the example, endpoint name should be a string
+    const result = await client.predict(endpointName, {
+      image_path: dataUrl
+    });
 
     // Return the analysis result
     res.status(200).json({
