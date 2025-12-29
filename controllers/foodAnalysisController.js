@@ -1,11 +1,12 @@
-const { Client } = require("@gradio/client");
-
 // Gradio API endpoint
 const GRADIO_API_URL = "https://363bcf6885b67a2d84.gradio.live/";
 
 // Analyze food image
 module.exports.analyzeFood = async (req, res) => {
   try {
+    // Dynamic import for ES Module
+    const { Client } = await import("@gradio/client");
+
     // Check if image is provided
     if (!req.file && !req.body.image_url) {
       return res.status(400).json({ 
@@ -43,17 +44,9 @@ module.exports.analyzeFood = async (req, res) => {
     // Connect to Gradio client
     const client = await Client.connect(GRADIO_API_URL);
     
-    // Create File-like object from buffer for Gradio client
-    // Gradio client accepts Buffer, File, or Blob
-    const imageFile = {
-      name: req.file?.originalname || 'image.jpg',
-      data: imageBuffer,
-      type: imageMimeType
-    };
-    
-    // Call Gradio API
+    // Call Gradio API with buffer
     const result = await client.predict("/gradio_vision_analyzer", {
-      image_path: imageBuffer // Buffer olarak gönder
+      image_path: imageBuffer
     });
 
     // Return the analysis result
