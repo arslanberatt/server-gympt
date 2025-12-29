@@ -55,6 +55,16 @@ const createToken = (id) => {
 module.exports.signup_post = async (req, res) => {
   const { email, password } = req.body;
 
+  // Validation
+  if (!email || !password) {
+    return res.status(400).json({ 
+      errors: {
+        email: !email ? 'Email is required' : '',
+        password: !password ? 'Password is required' : ''
+      }
+    });
+  }
+
   try {
     const user = await User.create({ email, password });
     const token = createToken(user._id);
@@ -73,6 +83,16 @@ module.exports.signup_post = async (req, res) => {
 
 module.exports.login_post = async (req, res) => {
   const { email, password } = req.body;
+
+  // Validation
+  if (!email || !password) {
+    return res.status(400).json({ 
+      errors: {
+        email: !email ? 'Email is required' : '',
+        password: !password ? 'Password is required' : ''
+      }
+    });
+  }
 
   try {
     const user = await User.login(email, password);

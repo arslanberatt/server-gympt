@@ -62,11 +62,13 @@ const dbURI = process.env.MONGODB_URI;
 if (!dbURI) {
   console.error('⚠️  MONGODB_URI environment variable is not set!');
   console.log('Server will start but database operations will fail.');
+  console.log('Railway\'de Variables sekmesinden MONGODB_URI ekleyin!');
 }
 
 if (!process.env.JWT_SECRET) {
   console.error('⚠️  JWT_SECRET environment variable is not set!');
   console.log('Authentication will not work properly.');
+  console.log('Railway\'de Variables sekmesinden JWT_SECRET ekleyin!');
 }
 
 // Start server first, then connect to MongoDB
@@ -77,15 +79,20 @@ app.listen(PORT, '0.0.0.0', () => {
   
   // Connect to MongoDB after server starts
   if (dbURI) {
-    mongoose.connect(dbURI)
+    mongoose.connect(dbURI, {
+      serverSelectionTimeoutMS: 5000, // 5 saniye timeout
+      socketTimeoutMS: 45000,
+    })
       .then(() => {
         console.log('✅ Connected to MongoDB');
       })
       .catch((err) => {
         console.error('❌ MongoDB connection error:', err.message);
         console.log('⚠️  Server running without MongoDB connection');
+        console.log('💡 Railway\'de MongoDB servisi eklediğinizden ve MONGODB_URI\'yi doğru ayarladığınızdan emin olun!');
       });
   } else {
     console.log('⚠️  MongoDB URI not provided, skipping connection');
+    console.log('💡 Railway\'de MongoDB servisi ekleyin ve MONGODB_URI environment variable\'ını ayarlayın!');
   }
 });
