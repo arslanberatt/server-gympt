@@ -57,11 +57,9 @@ module.exports.signup_post = async (req, res) => {
 
   // Validation
   if (!email || !password) {
+    const missingField = !email ? 'Email' : 'Password';
     return res.status(400).json({ 
-      errors: {
-        email: !email ? 'Email is required' : '',
-        password: !password ? 'Password is required' : ''
-      }
+      message: `${missingField} is required`
     });
   }
 
@@ -70,13 +68,17 @@ module.exports.signup_post = async (req, res) => {
     const token = createToken(user._id);
     res.cookie('jwt', token, { httpOnly: true, maxAge: maxAge * 1000 });
     res.status(201).json({ 
-      user: user._id,
-      token: token
+      token: token,
+      message: 'User registered successfully'
     });
   }
   catch(err) {
     const errors = handleErrors(err);
-    res.status(400).json({ errors });
+    // İlk hatayı message olarak döndür
+    const errorMessage = errors.email || errors.password || 'Registration failed';
+    res.status(400).json({ 
+      message: errorMessage
+    });
   }
  
 }
@@ -86,11 +88,9 @@ module.exports.login_post = async (req, res) => {
 
   // Validation
   if (!email || !password) {
+    const missingField = !email ? 'Email' : 'Password';
     return res.status(400).json({ 
-      errors: {
-        email: !email ? 'Email is required' : '',
-        password: !password ? 'Password is required' : ''
-      }
+      message: `${missingField} is required`
     });
   }
 
@@ -99,12 +99,17 @@ module.exports.login_post = async (req, res) => {
     const token = createToken(user._id);
     res.cookie('jwt', token, { httpOnly: true, maxAge: maxAge * 1000 });
     res.status(200).json({ 
-      token: token
+      token: token,
+      message: 'Login successful'
     });
   } 
   catch (err) {
     const errors = handleErrors(err);
-    res.status(400).json({ errors });
+    // İlk hatayı message olarak döndür
+    const errorMessage = errors.email || errors.password || 'Login failed';
+    res.status(400).json({ 
+      message: errorMessage
+    });
   }
 
 }
