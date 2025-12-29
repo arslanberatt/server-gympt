@@ -1,12 +1,30 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const cookieParser = require('cookie-parser');
 const { requireAuth, checkUser } = require('./middleware/authMiddleware');
 
 const app = express();
+
+// CORS configuration
+const getCorsOrigin = () => {
+  const origin = process.env.CORS_ORIGIN || process.env.FRONTEND_URL;
+  if (!origin || origin === 'true') return true; // Tüm origin'lere izin
+  if (origin.includes(',')) return origin.split(',').map(o => o.trim()); // Birden fazla origin
+  return origin; // Tek origin
+};
+
+const corsOptions = {
+  origin: getCorsOrigin(),
+  credentials: process.env.CORS_CREDENTIALS !== 'false', // Varsayılan true
+  methods: process.env.CORS_METHODS ? process.env.CORS_METHODS.split(',').map(m => m.trim()) : ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: process.env.CORS_ALLOWED_HEADERS ? process.env.CORS_ALLOWED_HEADERS.split(',').map(h => h.trim()) : ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 
 // middleware
 app.use(express.static('public'));
