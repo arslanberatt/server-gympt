@@ -89,7 +89,7 @@ module.exports.login_post = async (req, res) => {
 
 }
 
-module.exports.logout_get = (req, res) => {
+module.exports.logout_post = (req, res) => {
   res.cookie('jwt', '', { maxAge: 1 });
-  res.redirect('/');
+  res.status(200).json({ message: 'Logged out successfully' });
 }
