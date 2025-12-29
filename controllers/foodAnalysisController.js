@@ -51,30 +51,32 @@ module.exports.analyzeFood = async (req, res) => {
     // Connect to Gradio client
     const client = await Client.connect(GRADIO_API_URL);
     
-    // Get API info first to understand the endpoint structure
+    // Get API info to find the correct endpoint
     const apiInfo = await client.view_api();
     console.log('Gradio API info:', JSON.stringify(apiInfo, null, 2));
     
-    // Find the correct endpoint
-    let endpointIdentifier;
-    if (apiInfo && apiInfo.named_endpoints && apiInfo.named_endpoints["/gradio_vision_analyzer"] !== undefined) {
-      endpointIdentifier = apiInfo.named_endpoints["/gradio_vision_analyzer"];
-    } else if (apiInfo && apiInfo.named_endpoints) {
-      // Use first available endpoint
-      endpointIdentifier = Object.values(apiInfo.named_endpoints)[0];
-    } else {
-      endpointIdentifier = 0; // Default to first endpoint
+    // Find endpoint - try by name first, then use first available
+    let fnIndex = 0;
+    if (apiInfo && apiInfo.named_endpoints) {
+      // Try to find "/gradio_vision_analyzer" endpoint
+      if (apiInfo.named_endpoints["/gradio_vision_analyzer"] !== undefined) {
+        fnIndex = apiInfo.named_endpoints["/gradio_vision_analyzer"];
+      } else {
+        // Use first available endpoint
+        const endpoints = Object.values(apiInfo.named_endpoints);
+        fnIndex = endpoints.length > 0 ? endpoints[0] : 0;
+      }
     }
     
-    console.log('Using endpoint:', endpointIdentifier);
+    console.log('Using fn_index:', fnIndex);
     
     // Convert buffer to base64 data URL (Gradio expects this format)
     const base64Image = imageBuffer.toString('base64');
     const dataUrl = `data:${imageMimeType};base64,${base64Image}`;
     
     // Call Gradio API
-    // Gradio client expects data as an array, with image as data URL
-    const result = await client.predict(endpointIdentifier, [dataUrl]);
+    // According to Gradio docs, predict takes (fn_index, data_array)
+    const result = await client.predict(fnIndex, [dataUrl]);
 
     // Return the analysis result
     res.status(200).json({
