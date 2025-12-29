@@ -9,10 +9,10 @@ const { requireAuth, checkUser } = require('./middleware/authMiddleware');
 
 const app = express();
 
-// CORS configuration
+// CORS configuration for Mobile App & API
 const getCorsOrigin = () => {
   const origin = process.env.CORS_ORIGIN || process.env.FRONTEND_URL;
-  if (!origin || origin === 'true') return true; // Tüm origin'lere izin
+  if (!origin || origin === 'true' || origin === '*') return true; // Tüm origin'lere izin (mobil uygulamalar için)
   if (origin.includes(',')) return origin.split(',').map(o => o.trim()); // Birden fazla origin
   return origin; // Tek origin
 };
@@ -20,8 +20,10 @@ const getCorsOrigin = () => {
 const corsOptions = {
   origin: getCorsOrigin(),
   credentials: process.env.CORS_CREDENTIALS !== 'false', // Varsayılan true
-  methods: process.env.CORS_METHODS ? process.env.CORS_METHODS.split(',').map(m => m.trim()) : ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: process.env.CORS_ALLOWED_HEADERS ? process.env.CORS_ALLOWED_HEADERS.split(',').map(h => h.trim()) : ['Content-Type', 'Authorization']
+  methods: process.env.CORS_METHODS ? process.env.CORS_METHODS.split(',').map(m => m.trim()) : ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: process.env.CORS_ALLOWED_HEADERS ? process.env.CORS_ALLOWED_HEADERS.split(',').map(h => h.trim()) : ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Authorization'], // Mobil uygulamalar için token'ı görebilmek için
+  optionsSuccessStatus: 200 // Bazı eski browser'lar için
 };
 
 app.use(cors(corsOptions));
