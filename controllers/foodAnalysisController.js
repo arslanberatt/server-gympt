@@ -44,10 +44,29 @@ module.exports.analyzeFood = async (req, res) => {
     // Connect to Gradio client
     const client = await Client.connect(GRADIO_API_URL);
     
-    // Call Gradio API with buffer
-    const result = await client.predict("/gradio_vision_analyzer", {
-      image_path: imageBuffer
-    });
+    // Get API info to find the correct endpoint
+    const apiInfo = await client.view_api();
+    console.log('Gradio API info:', JSON.stringify(apiInfo, null, 2));
+    
+    // Find the endpoint that accepts image_path
+    let fnIndex = 0; // Default to first endpoint
+    if (apiInfo && apiInfo.named_endpoints) {
+      // Try to find endpoint by name
+      const endpointName = Object.keys(apiInfo.named_endpoints).find(
+        name => name.includes('vision') || name.includes('analyzer')
+      );
+      if (endpointName) {
+        fnIndex = apiInfo.named_endpoints[endpointName];
+      }
+    }
+    
+    // Convert buffer to base64 data URL for Gradio
+    const base64Image = imageBuffer.toString('base64');
+    const dataUrl = `data:${imageMimeType};base64,${base64Image}`;
+    
+    // Call Gradio API
+    // Gradio expects the image as a data URL or file path
+    const result = await client.predict(fnIndex, [dataUrl]);
 
     // Return the analysis result
     res.status(200).json({
