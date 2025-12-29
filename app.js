@@ -36,28 +36,56 @@ app.use(cookieParser());
 // view engine
 app.set('view engine', 'ejs');
 
-// database connection
-const dbURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/node-auth';
+// Health check endpoint (Railway için)
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Server is running' });
+});
 
-mongoose.connect(dbURI)
-  .then((result) => {
-    console.log('Connected to MongoDB');
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.log('MongoDB connection error:', err.message);
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT} (without MongoDB)`);
-    });
-  });
-
-// routes
-app.get('*', checkUser);
-app.get('/', (req, res) => res.render('home'));
-app.get('/smoothies', requireAuth, (req, res) => res.render('smoothies'));
+// API routes
 app.use(authRoutes);
 app.use(userRoutes);
+
+// 404 handler for API
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ error: 'Internal server error', message: err.message });
+});
+
+// database connection
+const dbURI = process.env.MONGODB_URI;
+
+if (!dbURI) {
+  console.error('⚠️  MONGODB_URI environment variable is not set!');
+  console.log('Server will start but database operations will fail.');
+}
+
+if (!process.env.JWT_SECRET) {
+  console.error('⚠️  JWT_SECRET environment variable is not set!');
+  console.log('Authentication will not work properly.');
+}
+
+// Start server first, then connect to MongoDB
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server running on port ${PORT}`);
+  
+  // Connect to MongoDB after server starts
+  if (dbURI) {
+    mongoose.connect(dbURI)
+      .then(() => {
+        console.log('✅ Connected to MongoDB');
+      })
+      .catch((err) => {
+        console.error('❌ MongoDB connection error:', err.message);
+        console.log('⚠️  Server running without MongoDB connection');
+      });
+  } else {
+    console.log('⚠️  MongoDB URI not provided, skipping connection');
+  }
+});

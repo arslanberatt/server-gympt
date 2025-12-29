@@ -42,19 +42,15 @@ const handleErrors = (err) => {
 // create json web token
 const maxAge = 3 * 24 * 60 * 60;
 const createToken = (id) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is not configured');
+  }
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: maxAge
   });
 };
 
-// controller actions
-module.exports.signup_get = (req, res) => {
-  res.render('signup');
-}
-
-module.exports.login_get = (req, res) => {
-  res.render('login');
-}
+// controller actions (API only, no views)
 
 module.exports.signup_post = async (req, res) => {
   const { email, password } = req.body;
