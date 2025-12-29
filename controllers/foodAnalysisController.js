@@ -48,25 +48,28 @@ module.exports.analyzeFood = async (req, res) => {
     const apiInfo = await client.view_api();
     console.log('Gradio API info:', JSON.stringify(apiInfo, null, 2));
     
-    // Find the endpoint that accepts image_path
-    let fnIndex = 0; // Default to first endpoint
-    if (apiInfo && apiInfo.named_endpoints) {
-      // Try to find endpoint by name
-      const endpointName = Object.keys(apiInfo.named_endpoints).find(
-        name => name.includes('vision') || name.includes('analyzer')
-      );
-      if (endpointName) {
-        fnIndex = apiInfo.named_endpoints[endpointName];
-      }
+    // Find endpoint by name "/gradio_vision_analyzer" or use fn_index
+    let endpointIdentifier;
+    if (apiInfo && apiInfo.named_endpoints && apiInfo.named_endpoints["/gradio_vision_analyzer"] !== undefined) {
+      endpointIdentifier = apiInfo.named_endpoints["/gradio_vision_analyzer"];
+    } else if (apiInfo && apiInfo.named_endpoints) {
+      // Try to find any endpoint that might work
+      const firstEndpoint = Object.values(apiInfo.named_endpoints)[0];
+      endpointIdentifier = firstEndpoint !== undefined ? firstEndpoint : 0;
+    } else {
+      endpointIdentifier = 0; // Default to first endpoint
     }
     
-    // Convert buffer to base64 data URL for Gradio
-    const base64Image = imageBuffer.toString('base64');
-    const dataUrl = `data:${imageMimeType};base64,${base64Image}`;
+    // Create a File-like object from buffer for Gradio
+    // Gradio client accepts Buffer, File, or Blob
+    // Convert buffer to a format Gradio can understand
+    const imageBlob = new Blob([imageBuffer], { type: imageMimeType });
     
-    // Call Gradio API
-    // Gradio expects the image as a data URL or file path
-    const result = await client.predict(fnIndex, [dataUrl]);
+    // Call Gradio API with the endpoint identifier
+    // According to the example, it should be called with image_path parameter
+    const result = await client.predict(endpointIdentifier, {
+      image_path: imageBlob
+    });
 
     // Return the analysis result
     res.status(200).json({
