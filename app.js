@@ -47,7 +47,7 @@ app.get('/health', (req, res) => {
 app.use(authRoutes);
 app.use(userRoutes);
 app.use('/food', foodAnalysisRoutes);
-app.use('/chat', chatRoutes);
+app.use('/chatbot', chatRoutes);
 
 // 404 handler for API
 app.use((req, res) => {
