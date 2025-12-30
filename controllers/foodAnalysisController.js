@@ -86,9 +86,12 @@ module.exports.analyzeFood = async (req, res) => {
       orig_name: req.file?.originalname || "image.jpg"
     };
     
-    // Call Gradio API
-    // According to API info, parameter name is "image_path" but Gradio client might expect it as array
-    // Try with array format first (positional parameters)
+    // Get endpoint info to understand parameter structure
+    const endpointInfo = apiInfo.named_endpoints[endpointName];
+    console.log('Endpoint info:', JSON.stringify(endpointInfo, null, 2));
+    
+    // Call Gradio API with array format (positional parameters)
+    // Gradio client expects parameters as an array in the order they appear in the API
     const result = await client.predict(endpointName, [imageData]);
 
     // Gradio returns data in result.data array, get the first element (JSON output)
