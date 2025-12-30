@@ -48,7 +48,23 @@ module.exports.chat = async (req, res) => {
       });
     }
 
-    // Add user message to conversation
+    // Prepare chat history for Gradio API
+    // Gradio expects history as array of [user_message, assistant_response] pairs
+    let chatHistory = [];
+    if (conversation.messages && conversation.messages.length > 0) {
+      // Group messages into pairs
+      for (let i = 0; i < conversation.messages.length; i += 2) {
+        if (i + 1 < conversation.messages.length) {
+          const userMsg = conversation.messages[i];
+          const assistantMsg = conversation.messages[i + 1];
+          if (userMsg.role === 'user' && assistantMsg.role === 'assistant') {
+            chatHistory.push([userMsg.content, assistantMsg.content]);
+          }
+        }
+      }
+    }
+
+    // Add user message to conversation (but don't save yet)
     conversation.messages.push({
       role: 'user',
       content: message
@@ -57,10 +73,9 @@ module.exports.chat = async (req, res) => {
     // Connect to Gradio client
     const client = await Client.connect(GRADIO_API_URL);
     
-    // Call chat endpoint
-    const result = await client.predict("/chat", {
-      message: message
-    });
+    // Call chat endpoint with message and history
+    // Gradio chat endpoint expects: [message, history]
+    const result = await client.predict("/chat", [message, chatHistory]);
 
     // Get the response data
     const chatResponse = result.data && result.data[0] ? result.data[0] : result.data;
@@ -72,7 +87,7 @@ module.exports.chat = async (req, res) => {
       content: aiResponse
     });
 
-    // Save conversation
+    // Save conversation with both messages
     await conversation.save();
 
     // Return the chat response with conversation ID
