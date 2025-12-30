@@ -72,20 +72,6 @@ module.exports.analyzeFood = async (req, res) => {
     
     console.log('Using endpoint name:', endpointName);
     
-    // Convert buffer to base64 data URL
-    const base64Image = imageBuffer.toString('base64');
-    const dataUrl = `data:${imageMimeType};base64,${base64Image}`;
-    
-    // According to API info, image_path expects an object with url or path
-    // Format: { path: string, url: string, meta: {...}, orig_name: string }
-    const imageData = {
-      url: dataUrl,
-      meta: {
-        _type: "gradio.FileData"
-      },
-      orig_name: req.file?.originalname || "image.jpg"
-    };
-    
     // Get endpoint info to understand parameter structure
     const endpointInfo = apiInfo.named_endpoints[endpointName];
     console.log('Endpoint info:', JSON.stringify(endpointInfo, null, 2));
@@ -104,17 +90,36 @@ module.exports.analyzeFood = async (req, res) => {
     const paramName = imageParam?.parameter_name || "image_path";
     console.log('Using parameter name:', paramName);
     
-    // Call Gradio API
-    // Try with object format first (named parameters)
+    // Gradio client expects Buffer, Blob, or File directly for image parameters
+    // Try sending the Buffer directly first
     let result;
     try {
-      result = await client.predict(endpointName, {
-        [paramName]: imageData
-      });
-    } catch (error) {
-      // If object format fails, try array format (positional)
-      console.log('Object format failed, trying array format...');
-      result = await client.predict(endpointName, [imageData]);
+      // Try with Buffer directly (array format - positional parameters)
+      result = await client.predict(endpointName, [imageBuffer]);
+    } catch (error1) {
+      console.log('Buffer format failed, trying data URL format...');
+      try {
+        // Try with data URL string
+        const base64Image = imageBuffer.toString('base64');
+        const dataUrl = `data:${imageMimeType};base64,${base64Image}`;
+        result = await client.predict(endpointName, [dataUrl]);
+      } catch (error2) {
+        console.log('Data URL format failed, trying object format...');
+        // Try with object format as per API documentation
+        const base64Image = imageBuffer.toString('base64');
+        const dataUrl = `data:${imageMimeType};base64,${base64Image}`;
+        const imageData = {
+          url: dataUrl,
+          meta: {
+            _type: "gradio.FileData"
+          },
+          orig_name: req.file?.originalname || "image.jpg"
+        };
+        // Try object format with named parameter
+        result = await client.predict(endpointName, {
+          [paramName]: imageData
+        });
+      }
     }
 
     // Gradio returns data in result.data array, get the first element (JSON output)
