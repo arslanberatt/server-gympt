@@ -91,11 +91,11 @@ module.exports.analyzeFood = async (req, res) => {
       image_path: imageData
     });
 
-    // Return the analysis result
-    res.status(200).json({
-      message: 'Food analysis completed successfully',
-      data: result.data
-    });
+    // Gradio returns data in result.data array, get the first element (JSON output)
+    const analysisResult = result.data && result.data[0] ? result.data[0] : result.data;
+
+    // Return the analysis result directly (as shown in the example)
+    res.status(200).json(analysisResult);
 
   } catch (error) {
     console.error('Food analysis error:', error);
