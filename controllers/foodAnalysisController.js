@@ -90,9 +90,32 @@ module.exports.analyzeFood = async (req, res) => {
     const endpointInfo = apiInfo.named_endpoints[endpointName];
     console.log('Endpoint info:', JSON.stringify(endpointInfo, null, 2));
     
-    // Call Gradio API with array format (positional parameters)
-    // Gradio client expects parameters as an array in the order they appear in the API
-    const result = await client.predict(endpointName, [imageData]);
+    // Check parameter name from API info
+    const parameters = endpointInfo?.parameters || [];
+    console.log('Parameters:', JSON.stringify(parameters, null, 2));
+    
+    // Find the image parameter name
+    const imageParam = parameters.find(p => 
+      p.component === "Image" || 
+      p.parameter_name === "image_path" || 
+      p.parameter_name === "image"
+    );
+    
+    const paramName = imageParam?.parameter_name || "image_path";
+    console.log('Using parameter name:', paramName);
+    
+    // Call Gradio API
+    // Try with object format first (named parameters)
+    let result;
+    try {
+      result = await client.predict(endpointName, {
+        [paramName]: imageData
+      });
+    } catch (error) {
+      // If object format fails, try array format (positional)
+      console.log('Object format failed, trying array format...');
+      result = await client.predict(endpointName, [imageData]);
+    }
 
     // Gradio returns data in result.data array, get the first element (JSON output)
     const analysisResult = result.data && result.data[0] ? result.data[0] : result.data;
