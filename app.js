@@ -5,6 +5,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const foodAnalysisRoutes = require('./routes/foodAnalysisRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 const cookieParser = require('cookie-parser');
 const { requireAuth, checkUser } = require('./middleware/authMiddleware');
 
@@ -46,6 +47,7 @@ app.get('/health', (req, res) => {
 app.use(authRoutes);
 app.use(userRoutes);
 app.use('/food', foodAnalysisRoutes);
+app.use('/chat', chatRoutes);
 
 // 404 handler for API
 app.use((req, res) => {
