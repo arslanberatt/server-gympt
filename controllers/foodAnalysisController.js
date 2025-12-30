@@ -123,10 +123,35 @@ module.exports.analyzeFood = async (req, res) => {
     }
 
     // Gradio returns data in result.data array, get the first element (JSON output)
-    const analysisResult = result.data && result.data[0] ? result.data[0] : result.data;
+    let analysisResult = result.data && result.data[0] ? result.data[0] : result.data;
+    
+    // If result is a string, parse it
+    if (typeof analysisResult === 'string') {
+      try {
+        analysisResult = JSON.parse(analysisResult);
+      } catch (e) {
+        // If parsing fails, return as is
+      }
+    }
+    
+    // Format the response nicely
+    const formattedResponse = {
+      success: true,
+      analysis: {
+        foods: analysisResult.plate_analysis || [],
+        totals: analysisResult.total_macros || {}
+      },
+      summary: {
+        totalFoods: (analysisResult.plate_analysis || []).length,
+        totalCalories: analysisResult.total_macros?.calories || 0,
+        totalProtein: analysisResult.total_macros?.protein || 0,
+        totalCarbs: analysisResult.total_macros?.carb || 0,
+        totalFat: analysisResult.total_macros?.fat || 0
+      }
+    };
 
-    // Return the analysis result directly (as shown in the example)
-    res.status(200).json(analysisResult);
+    // Return the formatted response
+    res.status(200).json(formattedResponse);
 
   } catch (error) {
     console.error('Food analysis error:', error);
